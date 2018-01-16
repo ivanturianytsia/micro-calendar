@@ -1,15 +1,25 @@
 <template lang="html">
-  <div class="container">
-    <table v-for="day in days">
+  <div>
+    <div class="container">
+      <table v-for="day in days">
 
-      <tr>
-        <th>{{ day.name }}</th>
-      </tr>
+        <tr>
+          <th>{{ day.name }}</th>
+        </tr>
 
-      <tr v-for="hour in day.hours" class="item" :data-id="hour.id" @click="toggleHour(hour.id)" >
-        <td @mousedown="onHourMouseDown(hour.id)" @mouseover="onHourMouseOver(hour.id)" @mouseup="onHourMouseUp(hour.id)" :class="hourClass(hour.id)">{{ hour.hour }}</td>
-      </tr>
-    </table>
+        <tr v-for="hour in day.hours" class="item" :data-id="hour.id">
+          <td @mousedown="onHourMouseDown(hour.id)" @mouseover="onHourMouseOver(hour.id)" @mouseup="onHourMouseUp(hour.id)" @click="toggleHour(hour.id)" :class="hourClass(hour.id)">{{ hour.hour }}</td>
+        </tr>
+      </table>
+    </div>
+    <div>
+      <div>
+        <button @click="undo" v-show="canUndo">Undo</button>
+      </div>
+      <div>
+        <button @click="redo" v-show="canRedo">Redo</button>  
+      </div>
+    </div>
   </div>
 </template>
 
@@ -17,7 +27,6 @@
 export default {
   data () {
     return {
-      selectedItems: {},
       hoverItems: {},
       days: this.genDays(),
       hourSelectStart: ''
@@ -30,7 +39,7 @@ export default {
     onHourMouseOver (hourId) {
       const s = this.hourSelectStart
       const result = {}
-      if (s && s !== hourId) {
+      if (s) {
         const isPositive = !this.selectedItems[s]
         const startDay = Math.min(s.split('-')[0], hourId.split('-')[0])
         const startHour = Math.min(s.split('-')[1], hourId.split('-')[1])
@@ -47,38 +56,17 @@ export default {
     },
     onHourMouseUp (hourId) {
       const s = this.hourSelectStart
-      if (s && s !== hourId) {
-        const isPositive = !this.selectedItems[s]
-        const startDay = Math.min(s.split('-')[0], hourId.split('-')[0])
-        const startHour = Math.min(s.split('-')[1], hourId.split('-')[1])
-        const finishDay = Math.max(s.split('-')[0], hourId.split('-')[0])
-        const finishHour = Math.max(s.split('-')[1], hourId.split('-')[1])
-        for (let i = startDay; i <= finishDay; i++ ) {
-          for (let j = startHour; j <= finishHour; j++ ) {
-            const id = `${i}-${j}`
-            this.setHourSelected(id, isPositive)
-          }
-        }
+      if (s) {
+        const mutation = !this.selectedItems[s] ? 'selectItems' : 'unselectItems'
+        this.$store.commit(mutation, Object.keys(this.hoverItems))
       }
       this.hoverItems = {}
       this.hourSelectStart = ''
     },
-    setHourSelected (hourId, shouldSelect) {
-      if (shouldSelect) {
-        this.$set(this.selectedItems, hourId,  true)
-      } else {
-        this.$delete(this.selectedItems, hourId)
-      }
-
-    },
     toggleHour (hourId) {
-      this.setHourSelected(hourId, !this.selectedItems[hourId])
+      const mutation = !this.selectedItems[hourId] ? 'selectItems' : 'unselectItems'
+      this.$store.commit(mutation, [hourId])
 		},
-    updateSelectedItems (newSelectedItems) {
-      newSelectedItems.forEach(item => {
-        this.setHourSelected(item.dataset.id, true)
-      })
-    },
     genDays () {
       return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         .map((day, dayIndex) => ({
@@ -96,6 +84,11 @@ export default {
         selected: !!this.selectedItems[hourId],
         hover: !!this.hoverItems[hourId]
       }
+    }
+  },
+  computed: {
+    selectedItems () {
+      return this.$store.getters.selectedItems
     }
   }
 }
