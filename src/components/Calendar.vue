@@ -14,8 +14,6 @@
 </template>
 
 <script>
-import DragSelect from 'vue-drag-select/src/DragSelect.vue'
-
 export default {
   data () {
     return {
@@ -99,9 +97,6 @@ export default {
         hover: !!this.hoverItems[hourId]
       }
     }
-  },
-  components: {
-    'drag-select-container': DragSelect
   }
 }
 </script>
